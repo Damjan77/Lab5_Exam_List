@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:lab3_exams_193222/screens/home_screen.dart';
 import 'package:lab3_exams_193222/screens/signin_screen.dart';
 import 'package:lab3_exams_193222/screens/signup_screen.dart';
-import 'package:lab3_exams_193222/screens/google_map_screen.dart';
 
 Future main() async{
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,12 +19,11 @@ class MyApp extends StatelessWidget {
         theme: ThemeData(
           primarySwatch: Colors.blue,
         ),
-        initialRoute: HomeScreen.id,
+        initialRoute: SignInScreen.id,
         routes: {
           HomeScreen.id:(context) => HomeScreen(),
           SignInScreen.id:(context) => SignInScreen(),
           SignUpScreen.id:(context) => SignUpScreen(),
-          //GoogleMapPage.id:(context) => GoogleMapPage(),
         }
     );
   }

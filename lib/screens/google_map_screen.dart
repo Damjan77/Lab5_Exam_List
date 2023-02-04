@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
@@ -20,6 +21,7 @@ class _GoogleMapPageState extends State<GoogleMapPage> {
   final List<Marker> markers = <Marker>[];
   List<ListExam> exams;
   _GoogleMapPageState(this.exams);
+  Map<PolylineId, Polyline> polylines = {};
 
   @override
   void initState() {
@@ -27,17 +29,24 @@ class _GoogleMapPageState extends State<GoogleMapPage> {
     _createMarkersForExams(exams);
   }
 
+
   void _createMarkersForExams(exams) {
     for(var i=0; i<exams.length; i++) {
-      print(exams[i].subject);
       markers.add(Marker(
-        markerId: MarkerId(i.toString()),
-        position: LatLng(exams[i].location.latitude, exams[i].location.longitude), //position of marker
-        infoWindow: InfoWindow(
-          title: exams[i].subject,
-          snippet: DateFormat("yyyy-MM-dd HH:mm:ss").format(exams[i].dateTime),
-        ),
-        icon: BitmapDescriptor.defaultMarker, //Marker icon
+          markerId: MarkerId(i.toString()),
+          position: LatLng(exams[i].location.latitude, exams[i].location.longitude),
+          infoWindow: InfoWindow(
+            title: exams[i].subject,
+            snippet: DateFormat("yyyy-MM-dd HH:mm:ss").format(exams[i].dateTime),
+          ),
+          icon: BitmapDescriptor.defaultMarker,
+          onTap: (){
+            getUserCurrentLocation().then((userLocation) async {
+              LatLng destinationLocationCoordinates = LatLng(exams[i].location.latitude, exams[i].location.longitude);
+              LatLng userLocationCoordinates = LatLng(userLocation.latitude, userLocation.longitude);
+              _findTheShortestRoute(userLocationCoordinates, destinationLocationCoordinates);
+            });
+          }
       ));
     }
     print("Number of markers created: " + markers.length.toString());
@@ -60,6 +69,42 @@ class _GoogleMapPageState extends State<GoogleMapPage> {
     return await Geolocator.getCurrentPosition();
   }
 
+  void _findTheShortestRoute(LatLng userLocation, LatLng destinationLocation) async{
+    print("Finding shortest route for destination");
+    PolylinePoints polylinePoints = PolylinePoints();
+    String googleAPI = 'AIzaSyAVdAlhV1OVRX-W2RCjyjBUUf841sK3auA';
+
+    addPolyLine(List<LatLng> polylineCoordinates) {
+      PolylineId id = PolylineId("poly");
+      Polyline polyline = Polyline(
+        polylineId: id,
+        color: Colors.deepOrange,
+        points: polylineCoordinates,
+        width: 8,
+      );
+      polylines[id] = polyline;
+      setState(() {});
+    }
+
+    List<LatLng> polylineCoordinates = [];
+
+    PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
+      googleAPI,
+      PointLatLng(userLocation.latitude, userLocation.longitude),
+      PointLatLng(destinationLocation.latitude, destinationLocation.longitude),
+      travelMode: TravelMode.driving,
+    );
+
+    if (result.points.isNotEmpty) {
+      result.points.forEach((PointLatLng point) {
+        polylineCoordinates.add(LatLng(point.latitude, point.longitude));
+      });
+    } else {
+      print(result.errorMessage);
+    }
+    addPolyLine(polylineCoordinates);
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -73,6 +118,7 @@ class _GoogleMapPageState extends State<GoogleMapPage> {
           child: GoogleMap(
             initialCameraPosition: camera,
             markers: Set<Marker>.of(markers),
+            polylines: Set<Polyline>.of(polylines.values),
             mapType: MapType.normal,
             myLocationEnabled: true,
             compassEnabled: true,
